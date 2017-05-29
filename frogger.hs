@@ -19,7 +19,7 @@ type GameState = (Player, [Truck], Slots, QuitState)
 data Move = UP | DOWN | LEFT | RIGHT | NOTHING | QUIT
 
 inputTimeout :: Int
-inputTimeout = 500000 -- Microseconds
+inputTimeout = 50000 -- Microseconds
 
 width :: Int
 width = 70
@@ -106,7 +106,7 @@ initialState = (p, t, s, q)
                           s3 = ((oneThird * 2, 1), EMPTY)
                           t1 = setTruckPos littleTruck (oneThird * 2, 10) 
                           t2 = setTruckPos bigTruck (oneThird * 2, 15)
-                          t3 = setTruckPos mediumTruck (oneThird * 2, 20)
+                          t3 = setTruckPos mediumTruck (oneThird * 2, 19)
 
 isOver :: GameState -> Bool
 isOver (p, ts, s, q) = q
