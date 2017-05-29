@@ -1,5 +1,6 @@
 import ConsoleIO
 import Data.Char
+import System.Timeout
 
 data PlayerState = ALIVE | DEAD
 type Player = (Pos, PlayerState)
@@ -16,6 +17,9 @@ type QuitState = Bool
 type GameState = (Player, [Truck], Slots, QuitState)
 
 data Move = UP | DOWN | LEFT | RIGHT | NOTHING | QUIT
+
+inputTimeout :: Int
+inputTimeout = 500000 -- Microseconds
 
 width :: Int
 width = 70
@@ -111,8 +115,9 @@ movePlayer :: Player -> Move -> Player
 movePlayer (pos, ALIVE) m = (applyMove pos m, ALIVE)
 movePlayer (pos, DEAD) m = (pos, DEAD)
 
-simulateChar :: GameState -> Char -> GameState
-simulateChar state c = simulateMove state (charToMove (toUpper c))
+simulateChar :: GameState -> Maybe Char -> GameState
+simulateChar state (Just c) = simulateMove state (charToMove (toUpper c))
+simulateChar state Nothing = simulateMove state NOTHING
 
 simulateMove :: GameState -> Move -> GameState
 simulateMove (p, ts, s, q) QUIT = (p, ts, s, True)
@@ -144,10 +149,10 @@ truckPositions ((x,y), len, sp) = take len [(x+num, y) | num <- [0..]]
 
 gameLoop state  | isOver state =  do clearScreen
                                      writeAt (0,0) "Goodbye!\n"
-                | otherwise = do 
-                                x <- getChar
+                | otherwise = do
+                                c <- timeout inputTimeout getChar
                                 clearScreen
-                                let newState = simulateChar state x
+                                let newState = simulateChar state c
                                 drawFrame newState
                                 gameLoop newState
 
