@@ -23,6 +23,18 @@ width = 70
 height :: Int
 height = 20
 
+littleTruck :: Truck
+littleTruck = ((0,0), 4, 3)
+
+bigTruck :: Truck
+bigTruck = ((0,0), 10, 1)
+
+mediumTruck :: Truck
+mediumTruck = ((0,0), 6, 2)
+
+setTruckPos :: Truck -> Pos -> Truck
+setTruckPos (oldPos, s, sp) newPos = (newPos, s, sp)
+
 drawBackground :: [IO()]
 drawBackground = [writeAt (x,y) "|" | y <- [1..height], x <- [1, width]] ++ 
                  [writeAt (0,0) topBar]
@@ -88,25 +100,46 @@ initialState = (p, t, s, q)
                           s1 = ((oneThird, 1), EMPTY)
                           s2 = ((oneHalf, 1), EMPTY)
                           s3 = ((oneThird * 2, 1), EMPTY)
-                          t1 = ((oneThird * 2, 10), 4, 3)
-                          t2 = ((oneThird * 2, 15), 10, 1)
-                          t3 = ((oneThird * 2, 20), 6, 2)
+                          t1 = setTruckPos littleTruck (oneThird * 2, 10) 
+                          t2 = setTruckPos bigTruck (oneThird * 2, 15)
+                          t3 = setTruckPos mediumTruck (oneThird * 2, 20)
 
 isOver :: GameState -> Bool
 isOver (p, ts, s, q) = q
 
 movePlayer :: Player -> Move -> Player
-movePlayer (pos, state) m = (applyMove pos m, state)
+movePlayer (pos, ALIVE) m = (applyMove pos m, ALIVE)
+movePlayer (pos, DEAD) m = (pos, DEAD)
 
 simulateChar :: GameState -> Char -> GameState
 simulateChar state c = simulateMove state (charToMove (toUpper c))
 
 simulateMove :: GameState -> Move -> GameState
 simulateMove (p, ts, s, q) QUIT = (p, ts, s, True)
-simulateMove (p, ts, s, q) move =  (movePlayer p move, map simulateTruck ts, s, q)
+simulateMove (p, ts, s, q) move =   checkCollisionTrucks (movePlayer p move, map simulateTruck ts, s, q)
 
 simulateTruck :: Truck -> Truck
-simulateTruck ((x,y), size, speed) = ((x-speed, y), size, speed)
+simulateTruck ((x,y), size, speed) | (x - speed + size < 1) = setTruckPos bigTruck (width, y)
+                                   | (x - speed < 1) = ((x,y), size - speed, speed) 
+                                   | otherwise = ((x-speed, y), size, speed)
+
+setDead :: Player -> Player
+setDead (pos, state) = (pos, DEAD)
+
+playerPosition :: Player -> Pos
+playerPosition (pos, state) = pos
+
+checkCollisionTrucks :: GameState -> GameState
+checkCollisionTrucks (p, ts, s, q) =   if collision then (setDead p, ts, s, q) else (p, ts, s, q) 
+                                        where
+                                            collision = not (null [toTest | toTest <- allTruckPositions, toTest == playerPosition p])
+                                            allTruckPositions = trucksPositions ts
+
+trucksPositions :: [Truck] -> [Pos]
+trucksPositions ts = concat (map truckPositions ts)
+
+truckPositions :: Truck -> [Pos]
+truckPositions ((x,y), len, sp) = take len [(x+num, y) | num <- [0..]] 
 
 
 gameLoop state  | isOver state =  do clearScreen
